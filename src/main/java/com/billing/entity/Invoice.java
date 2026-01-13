@@ -1,12 +1,8 @@
 package com.billing.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-
 import jakarta.persistence.*;
-
 import java.time.LocalDate;
-
 import java.util.List;
 
 @Entity
@@ -51,107 +47,42 @@ public class Invoice {
 
     // ===== Getters & Setters =====
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getInvoiceNumber() { return invoiceNumber; }
+    public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
 
-    public String getInvoiceNumber() {
-        return invoiceNumber;
-    }
+    public LocalDate getInvoiceDate() { return invoiceDate; }
+    public void setInvoiceDate(LocalDate invoiceDate) { this.invoiceDate = invoiceDate; }
 
-    public void setInvoiceNumber(String invoiceNumber) {
-        this.invoiceNumber = invoiceNumber;
-    }
+    public Double getSubTotal() { return subTotal; }
+    public void setSubTotal(Double subTotal) { this.subTotal = subTotal; }
 
-    public LocalDate getInvoiceDate() {
-        return invoiceDate;
-    }
+    public Double getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
 
-    public void setInvoiceDate(LocalDate localDate) {
-        this.invoiceDate = localDate;
-    }
+    public Double getAdvanceAmount() { return advanceAmount; }
+    public void setAdvanceAmount(Double advanceAmount) { this.advanceAmount = advanceAmount; }
 
-    public Double getSubTotal() {
-        return subTotal;
-    }
+    public Double getBalanceAmount() { return balanceAmount; }
+    public void setBalanceAmount(Double balanceAmount) { this.balanceAmount = balanceAmount; }
 
-    public void setSubTotal(Double subTotal) {
-        this.subTotal = subTotal;
-    }
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
 
-    public Double getTotalAmount() {
-        return totalAmount;
-    }
+    public Company getCompany() { return company; }
+    public void setCompany(Company company) { this.company = company; }
 
-    public void setTotalAmount(Double totalAmount) {
-        this.totalAmount = totalAmount;
-    }
+    public Customer getCustomer() { return customer; }
+    public void setCustomer(Customer customer) { this.customer = customer; }
 
-    public Double getAdvanceAmount() {
-        return advanceAmount;
-    }
+    public Employee getEmployee() { return employee; }
+    public void setEmployee(Employee employee) { this.employee = employee; }
 
-    public void setAdvanceAmount(Double advanceAmount) {
-        this.advanceAmount = advanceAmount;
-    }
+    public List<InvoiceItem> getItems() { return items; }
+    public void setItems(List<InvoiceItem> items) { this.items = items; }
 
-    public Double getBalanceAmount() {
-        return balanceAmount;
-    }
-
-    public void setBalanceAmount(Double balanceAmount) {
-        this.balanceAmount = balanceAmount;
-    }
-
-    public PaymentStatus getPaymentStatus() {
-        return paymentStatus;
-    }
-
-    public void setPaymentStatus(PaymentStatus paymentStatus) {
-        this.paymentStatus = paymentStatus;
-    }
-
-    public Company getCompany() {
-        return company;
-    }
-
-    public void setCompany(Company company) {
-        this.company = company;
-    }
-
-    public Customer getCustomer() {
-        return customer;
-    }
-
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
-    }
-
-    public Employee getEmployee() {
-        return employee;
-    }
-
-    public void setEmployee(Employee employee) {
-        this.employee = employee;
-    }
-
-    public List<InvoiceItem> getItems() {
-        return items;
-    }
-
-    public void setItems(List<InvoiceItem> items) {
-        this.items = items;
-    }
-
-    public Payment getPayment() {
-        return payment;
-    }
-
-    public void setPayment(Payment payment) {
-        this.payment = payment;
-    }
+    public Payment getPayment() { return payment; }
+    public void setPayment(Payment payment) { this.payment = payment; }
 }

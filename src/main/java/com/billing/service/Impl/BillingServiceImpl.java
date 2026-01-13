@@ -32,11 +32,19 @@ public class BillingServiceImpl implements BillingService {
         this.paymentRepository = paymentRepository;
     }
 
+    // ================= COMPANY =================
     @Override
     public Company saveCompany(Company company) {
         return companyRepository.save(company);
     }
 
+    @Override
+    public Company getCompanyById(Long id) {
+        return companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+    }
+
+    // ================= CUSTOMER =================
     @Override
     public Customer saveCustomer(Customer customer) {
         return customerRepository.save(customer);
@@ -46,9 +54,9 @@ public class BillingServiceImpl implements BillingService {
     public List<Customer> getAllCustomers() {
         return customerRepository.findAll();
     }
+
     @Override
     public Customer updateCustomer(Long id, Customer customer) {
-
         Customer existingCustomer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
 
@@ -62,25 +70,23 @@ public class BillingServiceImpl implements BillingService {
 
     @Override
     public void deleteCustomer(Long id) {
-
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
-
         customerRepository.delete(customer);
     }
 
+    // ================= PRODUCT =================
+    @Override
+    public Product saveProduct(Product product) {
+        return productRepository.save(product);
+    }
 
     @Override
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
 
-//    @Override
-//    public Invoice saveInvoice(Invoice invoice) {
-//        invoice.setInvoiceDate(LocalDate.now());
-//        return invoiceRepository.save(invoice);
-//    }
-    
+    // ================= INVOICE SAVE =================
     @Override
     public Invoice saveInvoice(Invoice invoice) {
 
@@ -89,17 +95,16 @@ public class BillingServiceImpl implements BillingService {
 
         for (InvoiceItem item : invoice.getItems()) {
 
-            // 🔗 VERY IMPORTANT
             item.setInvoice(invoice);
-            
 
             double price = item.getPrice() != null ? item.getPrice() : 0;
             double qty = item.getQuantity() != null ? item.getQuantity() : 0;
-            double tax = item.getTax() != null ? item.getTax() : 0;
+            double taxPercent = item.getTax() != null ? item.getTax() : 0;
             double discount = item.getDiscount() != null ? item.getDiscount() : 0;
 
             double rowBase = price * qty;
-            double rowTotal = rowBase + tax - discount;
+            double taxAmount = (rowBase * taxPercent) / 100;
+            double rowTotal = rowBase + taxAmount - discount;
 
             item.setRowTotal(rowTotal);
 
@@ -109,46 +114,18 @@ public class BillingServiceImpl implements BillingService {
 
         invoice.setSubTotal(subTotal);
         invoice.setTotalAmount(totalAmount);
-
-        if (invoice.getAdvanceAmount() != null) {
-            invoice.setBalanceAmount(totalAmount - invoice.getAdvanceAmount());
-        } else {
-            invoice.setBalanceAmount(totalAmount);
-        }
+        invoice.setBalanceAmount(
+                invoice.getAdvanceAmount() != null
+                        ? totalAmount - invoice.getAdvanceAmount()
+                        : totalAmount
+        );
 
         invoice.setInvoiceDate(LocalDate.now());
 
         return invoiceRepository.save(invoice);
     }
 
-    
-    @Override
-    public Payment savePayment(Payment payment) {
-        payment.setPaymentDate(LocalDate.now());
-        return paymentRepository.save(payment);
-    }
-    @Override
-    public Product saveProduct(Product product) {
-        return productRepository.save(product);
-    }
-    
-    @Override
-    public List<Invoice> getAllInvoices() {
-        return invoiceRepository.findAll();
-    }
-
-    
-//    to fetch  the invoices using Id 
-    
-    @Override
-    public Invoice getInvoiceById(Long id) {
-        return invoiceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
-    }
-    
-//    for updating the invoices using the id 
-    
-    
+    // ================= INVOICE UPDATE =================
     @Override
     public Invoice updateInvoice(Long id, Invoice invoice) {
 
@@ -162,24 +139,27 @@ public class BillingServiceImpl implements BillingService {
         existingInvoice.setAdvanceAmount(invoice.getAdvanceAmount());
         existingInvoice.setPaymentStatus(invoice.getPaymentStatus());
 
-        // 🔴 Remove old items
         existingInvoice.getItems().clear();
 
         double subTotal = 0.0;
         double totalAmount = 0.0;
 
-        // 🔵 Add updated items
         for (InvoiceItem item : invoice.getItems()) {
 
             item.setInvoice(existingInvoice);
 
             double price = item.getPrice() != null ? item.getPrice() : 0;
             double qty = item.getQuantity() != null ? item.getQuantity() : 0;
-            double tax = item.getTax() != null ? item.getTax() : 0;
-            double discount = item.getDiscount() != null ? item.getDiscount() : 0;
+            double taxPercent = item.getTax() != null ? item.getTax() : 0;
+            double discountPercent = item.getDiscount() != null ? item.getDiscount() : 0;
 
             double rowBase = price * qty;
-            double rowTotal = rowBase + tax - discount;
+
+            // % calculations
+            double taxAmount = (rowBase * taxPercent) / 100;
+            double discountAmount = (rowBase * discountPercent) / 100;
+
+            double rowTotal = rowBase + taxAmount - discountAmount;
 
             item.setRowTotal(rowTotal);
 
@@ -200,16 +180,22 @@ public class BillingServiceImpl implements BillingService {
         return invoiceRepository.save(existingInvoice);
     }
 
-    
-//    finding the company using id  
+    // ================= INVOICE FETCH =================
     @Override
-    public Company getCompanyById(Long id) {
-        return companyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
+    public List<Invoice> getAllInvoices() {
+        return invoiceRepository.findAll();
     }
 
-    
-    
-    
+    @Override
+    public Invoice getInvoiceById(Long id) {
+        return invoiceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+    }
 
+    // ================= PAYMENT =================
+    @Override
+    public Payment savePayment(Payment payment) {
+        payment.setPaymentDate(LocalDate.now());
+        return paymentRepository.save(payment);
+    }
 }

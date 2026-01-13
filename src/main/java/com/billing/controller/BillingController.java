@@ -32,9 +32,7 @@ public class BillingController {
     public Company getCompanyById(@PathVariable Long id) {
         return billingService.getCompanyById(id);
     }
-
-    
-    
+    		
     @PostMapping("/customer")
     public Customer saveCustomer(@RequestBody Customer customer) {
         return billingService.saveCustomer(customer);
