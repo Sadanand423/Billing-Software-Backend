@@ -32,7 +32,7 @@ public class BillingServiceImpl implements BillingService {
         this.paymentRepository = paymentRepository;
     }
 
-    // ================= COMPANY =================
+    // ---------------- COMPANY ----------------
     @Override
     public Company saveCompany(Company company) {
         return companyRepository.save(company);
@@ -44,10 +44,26 @@ public class BillingServiceImpl implements BillingService {
                 .orElseThrow(() -> new RuntimeException("Company not found with id: " + id));
     }
 
-    // ================= CUSTOMER =================
+    // ---------------- CUSTOMER ----------------
     @Override
     public Customer saveCustomer(Customer customer) {
         return customerRepository.save(customer);
+    }
+
+    @Override
+    public Customer updateCustomer(Long id, Customer customer) {
+        Customer existing = customerRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        existing.setName(customer.getName());
+        existing.setPhone(customer.getPhone());
+        existing.setGst(customer.getGst());
+        existing.setAddress(customer.getAddress());
+        return customerRepository.save(existing);
+    }
+
+    @Override
+    public void deleteCustomer(Long id) {
+        customerRepository.deleteById(id);
     }
 
     @Override
@@ -55,27 +71,7 @@ public class BillingServiceImpl implements BillingService {
         return customerRepository.findAll();
     }
 
-    @Override
-    public Customer updateCustomer(Long id, Customer customer) {
-        Customer existingCustomer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
-
-        existingCustomer.setName(customer.getName());
-        existingCustomer.setPhone(customer.getPhone());
-        existingCustomer.setGst(customer.getGst());
-        existingCustomer.setAddress(customer.getAddress());
-
-        return customerRepository.save(existingCustomer);
-    }
-
-    @Override
-    public void deleteCustomer(Long id) {
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
-        customerRepository.delete(customer);
-    }
-
-    // ================= PRODUCT =================
+    // ---------------- PRODUCT ----------------
     @Override
     public Product saveProduct(Product product) {
         return productRepository.save(product);
@@ -86,113 +82,131 @@ public class BillingServiceImpl implements BillingService {
         return productRepository.findAll();
     }
 
-    // ================= INVOICE SAVE =================
+    // ---------------- INVOICE ----------------
     @Override
     public Invoice saveInvoice(Invoice invoice) {
-
         double subTotal = 0.0;
+        double totalCgst = 0.0;
+        double totalSgst = 0.0;
         double totalAmount = 0.0;
 
         for (InvoiceItem item : invoice.getItems()) {
-
             item.setInvoice(invoice);
 
-            double price = item.getPrice() != null ? item.getPrice() : 0;
-            double qty = item.getQuantity() != null ? item.getQuantity() : 0;
-            double taxPercent = item.getTax() != null ? item.getTax() : 0;
-            double discount = item.getDiscount() != null ? item.getDiscount() : 0;
+            double price = item.getPrice() != null ? item.getPrice() : 0.0;
+            double qty = item.getQuantity() != null ? item.getQuantity() : 0.0;
+            double discountPercent = item.getDiscount() != null ? item.getDiscount() : 0.0;
+            double taxPercent = item.getTax() != null ? item.getTax() : 0.0;
 
-            double rowBase = price * qty;
-            double taxAmount = (rowBase * taxPercent) / 100;
-            double rowTotal = rowBase + taxAmount - discount;
+            double baseAmount = price * qty;
+            double discountAmount = baseAmount * (discountPercent / 100);
+            double taxableAmount = baseAmount - discountAmount;
+            double taxAmount = taxableAmount * (taxPercent / 100);
+
+            double cgst = taxAmount / 2;
+            double sgst = taxAmount / 2;
+            double rowTotal = taxableAmount + taxAmount;
 
             item.setRowTotal(rowTotal);
+            item.setCgstAmount(cgst);
+            item.setSgstAmount(sgst);
 
-            subTotal += rowBase;
+            subTotal += baseAmount;
+            totalCgst += cgst;
+            totalSgst += sgst;
             totalAmount += rowTotal;
         }
 
         invoice.setSubTotal(subTotal);
+        invoice.setTotalCgst(totalCgst);
+        invoice.setTotalSgst(totalSgst);
         invoice.setTotalAmount(totalAmount);
         invoice.setBalanceAmount(
-                invoice.getAdvanceAmount() != null
-                        ? totalAmount - invoice.getAdvanceAmount()
-                        : totalAmount
+                invoice.getAdvanceAmount() != null ? totalAmount - invoice.getAdvanceAmount() : totalAmount
         );
-
         invoice.setInvoiceDate(LocalDate.now());
 
         return invoiceRepository.save(invoice);
     }
 
-    // ================= INVOICE UPDATE =================
     @Override
     public Invoice updateInvoice(Long id, Invoice invoice) {
+        Invoice existing = invoiceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Invoice not found"));
 
-        Invoice existingInvoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+        existing.setInvoiceNumber(invoice.getInvoiceNumber());
+        existing.setCompany(invoice.getCompany());
+        existing.setCustomer(invoice.getCustomer());
+        existing.setEmployee(invoice.getEmployee());
+        existing.setAdvanceAmount(invoice.getAdvanceAmount());
+        existing.setPaymentStatus(invoice.getPaymentStatus());
 
-        existingInvoice.setInvoiceNumber(invoice.getInvoiceNumber());
-        existingInvoice.setCustomer(invoice.getCustomer());
-        existingInvoice.setCompany(invoice.getCompany());
-        existingInvoice.setEmployee(invoice.getEmployee());
-        existingInvoice.setAdvanceAmount(invoice.getAdvanceAmount());
-        existingInvoice.setPaymentStatus(invoice.getPaymentStatus());
-
-        existingInvoice.getItems().clear();
+        existing.getItems().clear();
 
         double subTotal = 0.0;
+        double totalCgst = 0.0;
+        double totalSgst = 0.0;
         double totalAmount = 0.0;
 
         for (InvoiceItem item : invoice.getItems()) {
+            item.setInvoice(existing);
 
-            item.setInvoice(existingInvoice);
+            double price = item.getPrice() != null ? item.getPrice() : 0.0;
+            double qty = item.getQuantity() != null ? item.getQuantity() : 0.0;
+            double discountPercent = item.getDiscount() != null ? item.getDiscount() : 0.0;
+            double taxPercent = item.getTax() != null ? item.getTax() : 0.0;
 
-            double price = item.getPrice() != null ? item.getPrice() : 0;
-            double qty = item.getQuantity() != null ? item.getQuantity() : 0;
-            double taxPercent = item.getTax() != null ? item.getTax() : 0;
-            double discountPercent = item.getDiscount() != null ? item.getDiscount() : 0;
+            double baseAmount = price * qty;
+            double discountAmount = baseAmount * (discountPercent / 100);
+            double taxableAmount = baseAmount - discountAmount;
+            double taxAmount = taxableAmount * (taxPercent / 100);
 
-            double rowBase = price * qty;
-
-            // % calculations
-            double taxAmount = (rowBase * taxPercent) / 100;
-            double discountAmount = (rowBase * discountPercent) / 100;
-
-            double rowTotal = rowBase + taxAmount - discountAmount;
+            double cgst = taxAmount / 2;
+            double sgst = taxAmount / 2;
+            double rowTotal = taxableAmount + taxAmount;
 
             item.setRowTotal(rowTotal);
+            item.setCgstAmount(cgst);
+            item.setSgstAmount(sgst);
 
-            subTotal += rowBase;
+            existing.getItems().add(item);
+
+            subTotal += baseAmount;
+            totalCgst += cgst;
+            totalSgst += sgst;
             totalAmount += rowTotal;
-
-            existingInvoice.getItems().add(item);
         }
 
-        existingInvoice.setSubTotal(subTotal);
-        existingInvoice.setTotalAmount(totalAmount);
-        existingInvoice.setBalanceAmount(
-                invoice.getAdvanceAmount() != null
-                        ? totalAmount - invoice.getAdvanceAmount()
-                        : totalAmount
+        existing.setSubTotal(subTotal);
+        existing.setTotalCgst(totalCgst);
+        existing.setTotalSgst(totalSgst);
+        existing.setTotalAmount(totalAmount);
+        existing.setBalanceAmount(
+                invoice.getAdvanceAmount() != null ? totalAmount - invoice.getAdvanceAmount() : totalAmount
         );
 
-        return invoiceRepository.save(existingInvoice);
+        return invoiceRepository.save(existing);
     }
 
-    // ================= INVOICE FETCH =================
+    @Override
+    public Invoice getInvoiceById(Long id) {
+        return invoiceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Invoice not found"));
+    }
+
     @Override
     public List<Invoice> getAllInvoices() {
         return invoiceRepository.findAll();
     }
 
     @Override
-    public Invoice getInvoiceById(Long id) {
-        return invoiceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+    public void deleteInvoice(Long id) {
+        Invoice existing = invoiceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Invoice not found"));
+        invoiceRepository.delete(existing);
     }
 
-    // ================= PAYMENT =================
+    // ---------------- PAYMENT ----------------
     @Override
     public Payment savePayment(Payment payment) {
         payment.setPaymentDate(LocalDate.now());

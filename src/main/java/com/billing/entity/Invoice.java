@@ -3,6 +3,7 @@ package com.billing.entity;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -16,10 +17,23 @@ public class Invoice {
     private String invoiceNumber;
     private LocalDate invoiceDate;
 
-    private Double subTotal;
-    private Double totalAmount;
-    private Double advanceAmount;
-    private Double balanceAmount;
+    @Column(nullable = false)
+    private Double subTotal = 0.0;       // Sum of all items base price
+
+    @Column(nullable = false)
+    private Double totalAmount = 0.0;    // Final amount including tax
+
+    @Column(nullable = false)
+    private Double totalCgst = 0.0;      // Sum of CGST from all items
+
+    @Column(nullable = false)
+    private Double totalSgst = 0.0;      // Sum of SGST from all items
+
+    @Column(nullable = false)
+    private Double advanceAmount = 0.0;
+
+    @Column(nullable = false)
+    private Double balanceAmount = 0.0;
 
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
@@ -38,15 +52,15 @@ public class Invoice {
 
     @JsonManagedReference
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<InvoiceItem> items;
+    private List<InvoiceItem> items = new ArrayList<>();
 
     @OneToOne(mappedBy = "invoice", cascade = CascadeType.ALL)
     private Payment payment;
 
+    // ===== Constructors =====
     public Invoice() {}
 
     // ===== Getters & Setters =====
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -61,6 +75,12 @@ public class Invoice {
 
     public Double getTotalAmount() { return totalAmount; }
     public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
+
+    public Double getTotalCgst() { return totalCgst; }
+    public void setTotalCgst(Double totalCgst) { this.totalCgst = totalCgst; }
+
+    public Double getTotalSgst() { return totalSgst; }
+    public void setTotalSgst(Double totalSgst) { this.totalSgst = totalSgst; }
 
     public Double getAdvanceAmount() { return advanceAmount; }
     public void setAdvanceAmount(Double advanceAmount) { this.advanceAmount = advanceAmount; }
